@@ -6,12 +6,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>ClipYeu++</title>
+    <title>ClipYeu18++</title>
     <link rel="stylesheet" href="./Swiper-3.4.2/dist/css/swiper.min.css">
     <link rel="stylesheet" href="./css/video.css">
     <script src="./js/jquery.min.js"></script>
     <script src="./Swiper-3.4.2/dist/js/swiper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://ssl.p.jwpcdn.com/player/v/8.1.3/jwplayer.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        jwplayer.key = "W7zSm81+mmIsg7F+fyHRKhF3ggLkTqtGMhvI92kbqf/ysE99";
+    </script>
     <style>
         .bg {
             position: absolute;
@@ -45,7 +49,7 @@
     var video = {
         videoData: [],
         index: 0,
-        perpage:5,
+        perpage:15,
         isPlay: true,
         loadVideo: function(mySwiper,callback) {
             var xmlhttp = new XMLHttpRequest();
@@ -62,7 +66,7 @@
             xmlhttp.open("GET", "https://clipyeu2.com/data.php", true);
             xmlhttp.send();
         },
-        initVideoSlider: function(mySwiper,data,diff) {
+        initVideoSlider: function(mySwiper,data) {
 
             let start = video.index * video.perpage;
             let end = (video.index + 1) *  video.perpage;
@@ -78,25 +82,15 @@
                     let poster = `https://app.clipyeuplus.com${img}`;
                     
                         html += `<div class="swiper-slide">
-                            <video id="video_${list[i].id}" class="video_play" data-time="0" poster="${poster}" width="100%" data-link="${url}" webkit-playsinline="true" playsinline="true" preload="none"  muted controls x5-video-player-fullscreen="portraint" style="object-fit:fill" >
-                                </video>
-                            <div class="btn"><img class="player" src="./img/play.png" alt=""><img class="pause" src="./img/pause.png" alt=""></div>
+                            <div class="wrap" class="video_play" data-link="${url}" data-poster="${poster}" data-time="0">
+                                <div id="video_${list[i].id}" ></div>
+                            </div>
+                            
                         </div>`;
                 }   
             }
-
-            if(diff === 'up') {
-                mySwiper.removeAllSlides();
-                mySwiper.appendSlide(html);
-                let to = mySwiper.slides.length -1;
-                mySwiper.slideTo(to,0,false);
-                mySwiper.update();
-                
-            } else {
-                mySwiper.removeAllSlides();
-                mySwiper.appendSlide(html);
-                mySwiper.init();
-            }
+            mySwiper.appendSlide(html);
+            mySwiper.update();
             video.playVideo();
             document.querySelector('.bg').style.display='none';
         },
@@ -118,24 +112,12 @@
             });
             
             mySwiper.on('touchEnd',function(swiper) {
-                if(swiper.activeIndex == 0 && swiper.touches.diff > 0) {
-                    video.index--;
-
-                    if(video.index < 0) {
-                        video.index = 0;
-                        return;
-                    }
-                    document.querySelector('.bg').style.display= 'flex';
-                    setTimeout(function(){
-                        video.initVideoSlider(swiper, video.videoData,'up');
-                    },3000);                  
-                }
-                if(swiper.activeIndex == swiper.slides.length -1 && swiper.touches.diff < 0) {
+                if(swiper.activeIndex == swiper.slides.length -2 && swiper.touches.diff < 0) {
                     video.index++;
                     document.querySelector('.bg').style.display= 'flex';
                     setTimeout(function(){
-                        video.initVideoSlider(swiper, video.videoData,'down');
-                    },1000);
+                        video.initVideoSlider(swiper, video.videoData);
+                    },500);
                 }
                 
             })
@@ -143,94 +125,64 @@
                 var mv = document.querySelector('.swiper-slide.swiper-slide-active .video_play');
                 if(video.isPlay == true) {
                     mv.pause();
-                    // document.querySelector('.swiper-slide.swiper-slide-active .btn .player').style.opacity = 1;
-                    // document.querySelector('.swiper-slide.swiper-slide-active .btn .pause').style.opacity = 0;
                     video.isPlay = false;
                 } else {
                     mv.play();
-                    // document.querySelector('.swiper-slide.swiper-slide-active .btn .player').style.opacity = 0;
-                    // document.querySelector('.swiper-slide.swiper-slide-active .btn .pause').style.opacity = 0;
                     video.isPlay = true;
                 }
             })
         },
         playVideo() {
-            var movie = document.querySelector('.swiper-slide.swiper-slide-active .video_play');
-            var link = movie.getAttribute('data-link');
-            if(movie.readyState == 4) {
-                movie.play();
-            } else {
-                if(Hls.isSupported()) {
-                    if(link.includes('m3u8')) {
-                        var hls = new Hls();
-                        hls.loadSource(link);
-                        hls.attachMedia(movie);
-                        hls.on(Hls.Events.MANIFEST_PARSED,function() {
-                            movie.muted = false;
-                            var time = movie.getAttribute('data-time');
-                            movie.currentTime = time;
-                            movie.play();
-                        });
-                    } else {
-                        movie.src = link;
-                        var source = document.createElement('source');
-                        source.src = link;
-                        source.type = 'video/mp4';
-                        movie.appendChild(source);
-                        movie.muted = false;
-                        var time = movie.getAttribute('data-time');
-                        movie.currentTime = time;
-                        movie.play();
-                    }   
-                }else if(movie.canPlayType('application/vnd.apple.mpegurl')){
-                    movie.src = link;
-                    movie.addEventListener('loadedmetadata',function() {
-                        movie.play();
-                    });
-                }
-            }
+            var wrap = document.querySelector('.swiper-slide.swiper-slide-active .wrap');
+            var link = wrap.getAttribute('data-link');
+            var id = wrap.querySelector('div').id;
+            var poster = wrap.getAttribute('data-poster');
+            var time = wrap.getAttribute('data-time');
+            var player = jwplayer(id);
+            player.setup({
+                sources: [{
+                    file: link,
+                    type: "mp4"
+                }],
+                image:poster,
+                width: "100%",
+                aspectratio: "3:8",
+                primary: "html5",
+                autostart: true,
+                muted: false,
+                volume: 100
+            });
+            
         },
         stopVideo() {
-            // var movie = document.querySelectorAll('.swiper-slide .video_play');
-            // for(let i = 0; i < movie.length; i++) {
-            //     movie[i].pause();
-            //     movie[i].addEventListener('pause',function() {
-            //         var tmp_src = movie[i].src;
-            //         var playtime = movie[i].currentTime;
-            //         movie[i].setAttribute('data-time',playtime);
-            //         movie[i].src = '';
-            //         movie[i].load();
-            //         movie[i].src = tmp_src;
-            //         movie[i].currentTime = playtime;
-            //     });
-            // }
-            var prev = document.querySelector('.swiper-slide.swiper-slide-prev .video_play');
-            var next = document.querySelector('.swiper-slide swiper-slide-next .video_play');
+            var prev = document.querySelector('.swiper-slide.swiper-slide-prev .wrap');
+            var next = document.querySelector('.swiper-slide swiper-slide-next .wrap');
             if(prev != undefined) {
-                if(prev.readyState == 4) {
-                    prev.pause();
-                    var tmp_src = prev.src;
-                    var playtime = prev.currentTime;
+                var movie  = prev.querySelector('video');
+                
+                if(movie != undefined) {
+                    var playtime = movie.currentTime;
                     prev.setAttribute('data-time',playtime);
-                    prev.src='';
-                    prev.load();
+                    var id = prev.querySelector('div').id;
+                    var player = jwplayer(id);
+                    player.remove();
                 }
             }
 
             if(next != undefined) {
-                if(next.readyState == 4) {
-                    next.pause();
-                    var tmp_src = next.src;
-                    var playtime = next.currentTime;
+                var movie  = next.querySelector('video');
+                if(movie != undefined) {
+                    var playtime = movie.currentTime;
                     next.setAttribute('data-time',playtime);
-                    next.src='';
-                    next.load();
+                    var id = next.querySelector('div').id;
+                    var player = jwplayer(id);
+                    player.remove();
                 }
+                
             }
         }
     }
    video.run();
 </script>
 </body>
-
 </html>
